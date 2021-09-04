@@ -1,0 +1,13 @@
+use_frameworks!
+
+platform :ios, '9.0'
+
+target 'YGSpeech_Example' do
+  pod 'YGSpeech', :path => '../'
+
+  target 'YGSpeech_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end

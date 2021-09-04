@@ -1,0 +1,16 @@
+PODS:
+  - YGSpeech (0.1.0)
+
+DEPENDENCIES:
+  - YGSpeech (from `../`)
+
+EXTERNAL SOURCES:
+  YGSpeech:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  YGSpeech: 38986a61299d77091a5ce1d306177dcf9da5a7fe
+
+PODFILE CHECKSUM: 9df0cce7e1c91f8c8e78d98586a1fa378a048d52
+
+COCOAPODS: 1.9.1
