@@ -27,16 +27,14 @@ TODO: Add long description of the pod here.
   s.author           = { 'mymong' => 'mymong@163.com' }
   s.source           = { :git => 'https://github.com/mymong/YGSpeech.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
-
-  s.ios.deployment_target = '9.0'
-
-  s.source_files = 'YGSpeech/Classes/**/*'
   
-  # s.resource_bundles = {
-  #   'YGSpeech' => ['YGSpeech/Assets/*.png']
-  # }
-
-  # s.public_header_files = 'Pod/Classes/**/*.h'
-  # s.frameworks = 'UIKit', 'MapKit'
-  # s.dependency 'AFNetworking', '~> 2.3'
+  s.ios.deployment_target = '8.0'
+  
+  s.source_files = 'YGSpeech/*.h'
+  s.public_header_files = 'YGSpeech/*.h'
+  
+  s.subspec 'Foundation' do |p|
+    p.source_files = 'YGSpeech/Foundation/**/*'
+  end
+  
 end

@@ -1,5 +1,7 @@
 PODS:
-  - YGSpeech (0.1.0)
+  - YGSpeech (0.1.0):
+    - YGSpeech/Foundation (= 0.1.0)
+  - YGSpeech/Foundation (0.1.0)
 
 DEPENDENCIES:
   - YGSpeech (from `../`)
@@ -9,7 +11,7 @@ EXTERNAL SOURCES:
     :path: "../"
 
 SPEC CHECKSUMS:
-  YGSpeech: 38986a61299d77091a5ce1d306177dcf9da5a7fe
+  YGSpeech: 493e1ea4a10f5bc5bb29429312dc737a333186fb
 
 PODFILE CHECKSUM: 9df0cce7e1c91f8c8e78d98586a1fa378a048d52
 
