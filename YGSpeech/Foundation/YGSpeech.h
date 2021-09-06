@@ -7,3 +7,4 @@
 
 #import <Foundation/Foundation.h>
 #import "YGSpeechTextSplitter.h"
+#import "YGSpeechSynthesizer.h"
