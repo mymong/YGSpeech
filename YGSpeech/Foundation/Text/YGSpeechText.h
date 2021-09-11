@@ -7,10 +7,14 @@
 
 #import <Foundation/Foundation.h>
 
+@class YGSpeechTextSource;
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface YGSpeechText : NSObject
-- (NSRange)range; // range in source
+- (instancetype)initWithSource:(YGSpeechTextSource *)source range:(NSRange)range;
+@property (nonatomic, readonly) YGSpeechTextSource * source;
+@property (nonatomic, readonly) NSRange range; // range in source
 - (NSUInteger)length; // text length
 - (NSString *)string; // origin string
 - (NSString *)speechString; // string to synthesize

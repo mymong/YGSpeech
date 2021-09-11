@@ -6,10 +6,9 @@
 //
 
 #import "YGSpeechTextSplitter.h"
-#import "YGSpeechTextFragment.h"
 
-@interface YGSpeechTextItem ()
-- (instancetype)initWithSplitter:(YGSpeechTextSplitter *)splitter source:(id<YGSpeechTextSource>)source range:(NSRange)range;
+@interface YGSpeechTextPart ()
+- (instancetype)initWithSplitter:(YGSpeechTextSplitter *)splitter source:(YGSpeechTextSource *)source range:(NSRange)range;
 @end
 
 @implementation YGSpeechTextSplitter {
@@ -18,7 +17,7 @@
     NSArray<YGSpeechText *> *_paragraphs;
 }
 
-- (instancetype)initWithSource:(id<YGSpeechTextSource>)source {
+- (instancetype)initWithSource:(YGSpeechTextSource *)source {
     NSParameterAssert(source);
     if (self = [super init]) {
         _source = source;
@@ -26,45 +25,85 @@
     return self;
 }
 
+#pragma mark segments
+
 - (NSArray<YGSpeechText *> *)clauses {
     if (!_clauses) {
-        _clauses = [self clausesWithSource:_source];
+        _clauses = [self clausesWithSource:[self source]];
     }
     return _clauses;
 }
 
 - (NSArray<YGSpeechText *> *)sentences {
     if (!_sentences) {
-        _sentences = [self sentencesWithTexts:[self clauses]];
+        _sentences = [self sentencesWithClauses:[self clauses]];
     }
     return _sentences;
 }
 
 - (NSArray<YGSpeechText *> *)paragraphs {
     if (!_paragraphs) {
-        if (_sentences) {
-            _paragraphs = [self paragraphsWithTexts:_sentences];
-        } else {
-            _paragraphs = [self paragraphsWithTexts:[self clauses]];
-        }
+        _paragraphs = [self paragraphsWithSentences:[self sentences]];
     }
     return _paragraphs;
 }
 
+#pragma mark hit range
+
 - (NSArray<YGSpeechText *> *)clausesHitRange:(NSRange)range {
-    return [self textsHitRange:range fromTexts:[self clauses]];
+    return [self segmentsHitRange:range fromSegments:[self clauses]];
 }
 
 - (NSArray<YGSpeechText *> *)sentencesHitRange:(NSRange)range {
-    return [self textsHitRange:range fromTexts:[self sentences]];
+    return [self segmentsHitRange:range fromSegments:[self sentences]];
 }
 
 - (NSArray<YGSpeechText *> *)paragraphsHitRange:(NSRange)range {
-    return [self textsHitRange:range fromTexts:[self paragraphs]];
+    return [self segmentsHitRange:range fromSegments:[self paragraphs]];
 }
 
-- (nullable YGSpeechTextItem *)itemFromLocation:(NSUInteger)location capacity:(NSUInteger)capacity {
-    NSRange itemRange = NSMakeRange(0, 0);
+- (NSArray<YGSpeechText *> *)segmentsHitRange:(NSRange)range fromSegments:(NSArray<YGSpeechText *> *)texts {
+    NSMutableArray *array = [NSMutableArray new];
+    for (YGSpeechText *text in texts) {
+        NSRange textRange = [text range];
+        if (textRange.location >= NSMaxRange(range)) {
+            break;
+        }
+        if (NSMaxRange(textRange) > range.location) {
+            [array addObject:text];
+        }
+    }
+    return array;
+}
+
+#pragma mark hit location
+
+- (nullable YGSpeechText *)clauseHitLocation:(NSUInteger)location {
+    return [self segmentHitLocation:location fromSegments:[self clauses]];
+}
+
+- (nullable YGSpeechText *)sentenceHitLocation:(NSUInteger)location {
+    return [self segmentHitLocation:location fromSegments:[self sentences]];
+}
+
+- (nullable YGSpeechText *)paragraphHitLocation:(NSUInteger)location {
+    return [self segmentHitLocation:location fromSegments:[self paragraphs]];
+}
+
+- (nullable YGSpeechText *)segmentHitLocation:(NSUInteger)location fromSegments:(NSArray<YGSpeechText *> *)texts {
+    for (YGSpeechText *text in texts) {
+        NSRange range = [text range];
+        if (location >= range.location && location < NSMaxRange(range)) {
+            return text;
+        }
+    }
+    return nil;
+}
+
+#pragma mark split
+
+- (nullable YGSpeechTextPart *)textPartFromLocation:(NSUInteger)location maxLength:(NSUInteger)maxLength {
+    NSRange partRange = NSMakeRange(0, 0);
     for (YGSpeechText *clause in [self clauses]) {
         
         NSRange range = [clause range];
@@ -83,44 +122,44 @@
         }
         
         //如果即将超出限制
-        if (range.length + itemRange.length > capacity) {
+        if (range.length + partRange.length > maxLength) {
             
             //如果已经提取有内容了，则返回之
-            if (itemRange.length > 0) {
+            if (partRange.length > 0) {
                 break; //避免硬拆句
             }
             
             //当不是从小句的最后一个字符结束的话，可能前面的字符全是符号不能发出声音，有的合成引擎无法处理不发音的文本！
             //因此我们需要检查一下，如果剩余的都是符号则忽略该小句。
-            NSString *speechString = [_source speechStringWithRange:NSMakeRange(range.location, capacity)];
+            NSString *speechString = [_source speechStringWithRange:NSMakeRange(range.location, maxLength)];
             [speechString stringByTrimmingCharactersInSet:[NSCharacterSet punctuationCharacterSet]];
             if (0 == speechString.length) {
-                location = range.location + capacity;
+                location = range.location + maxLength;
                 continue; //不发音，忽略
             }
             
             //硬拆句
-            itemRange.location = range.location;
-            itemRange.length = capacity;
+            partRange.location = range.location;
+            partRange.length = maxLength;
             break;
         }
         
-        if (0 == itemRange.length) {
-            itemRange = range;
+        if (0 == partRange.length) {
+            partRange = range;
         } else {
-            itemRange.length = NSMaxRange(range) - itemRange.location;
+            partRange.length = NSMaxRange(range) - partRange.location;
         }
     }
     
-    if (itemRange.length > 0) {
-        return [[YGSpeechTextItem alloc] initWithSplitter:self source:_source range:itemRange];
+    if (partRange.length > 0) {
+        return [[YGSpeechTextPart alloc] initWithSplitter:self source:_source range:partRange];
     }
     return nil;
 }
 
 #pragma mark Private
 
-- (NSArray<YGSpeechText *> *)clausesWithSource:(id<YGSpeechTextSource>)source {
+- (NSArray<YGSpeechText *> *)clausesWithSource:(YGSpeechTextSource *)source {
     NSParameterAssert(source);
     if (!source) {
         return @[];
@@ -166,11 +205,11 @@
         }
     }
     
-    NSMutableArray<YGSpeechTextFragment *> *clauses = [NSMutableArray new];
+    NSMutableArray<YGSpeechText *> *clauses = [NSMutableArray new];
     NSUInteger location = 0;
     for (NSString *text in texts) {
         NSRange range = NSMakeRange(location, text.length);
-        YGSpeechTextFragment *clause = [[YGSpeechTextFragment alloc] initWithSource:source range:range];
+        YGSpeechText *clause = [[YGSpeechText alloc] initWithSource:source range:range];
         [clauses addObject:clause];
         location += text.length;
     }
@@ -178,8 +217,8 @@
     return clauses;
 }
 
-- (NSArray<YGSpeechText *> *)sentencesWithTexts:(NSArray<YGSpeechText *> *)texts {
-    NSMutableArray<YGSpeechTextFragment *> *sentences = [NSMutableArray new];
+- (NSArray<YGSpeechText *> *)sentencesWithClauses:(NSArray<YGSpeechText *> *)texts {
+    NSMutableArray<YGSpeechText *> *sentences = [NSMutableArray new];
     
     NSRange range = NSMakeRange(0, 0);
     for (YGSpeechText *text in texts) {
@@ -189,22 +228,22 @@
             range.length = NSMaxRange([text range]) - range.location;
         }
         if ([self hasSentenceEndCharactersWithText:text]) {
-            YGSpeechTextFragment *sentence = [[YGSpeechTextFragment alloc] initWithSource:_source range:range];
+            YGSpeechText *sentence = [[YGSpeechText alloc] initWithSource:_source range:range];
             [sentences addObject:sentence];
             range = NSMakeRange(0, 0);
         }
     }
     
     if (range.length > 0) {
-        YGSpeechTextFragment *sentence = [[YGSpeechTextFragment alloc] initWithSource:_source range:range];
+        YGSpeechText *sentence = [[YGSpeechText alloc] initWithSource:_source range:range];
         [sentences addObject:sentence];
     }
     
     return sentences;
 }
 
-- (NSArray<YGSpeechText *> *)paragraphsWithTexts:(NSArray<YGSpeechText *> *)texts {
-    NSMutableArray<YGSpeechTextFragment *> *paragraphs = [NSMutableArray new];
+- (NSArray<YGSpeechText *> *)paragraphsWithSentences:(NSArray<YGSpeechText *> *)texts {
+    NSMutableArray<YGSpeechText *> *paragraphs = [NSMutableArray new];
     
     NSRange range = NSMakeRange(0, 0);
     for (YGSpeechText *text in texts) {
@@ -214,32 +253,18 @@
             range.length = NSMaxRange([text range]) - range.location;
         }
         if ([self hasParagraphEndCharactersWithText:text]) {
-            YGSpeechTextFragment *paragraph = [[YGSpeechTextFragment alloc] initWithSource:_source range:range];
+            YGSpeechText *paragraph = [[YGSpeechText alloc] initWithSource:_source range:range];
             [paragraphs addObject:paragraph];
             range = NSMakeRange(0, 0);
         }
     }
     
     if (range.length > 0) {
-        YGSpeechTextFragment *paragraph = [[YGSpeechTextFragment alloc] initWithSource:_source range:range];
+        YGSpeechText *paragraph = [[YGSpeechText alloc] initWithSource:_source range:range];
         [paragraphs addObject:paragraph];
     }
     
     return paragraphs;
-}
-
-- (NSArray<YGSpeechText *> *)textsHitRange:(NSRange)range fromTexts:(NSArray<YGSpeechText *> *)texts {
-    NSMutableArray *array = [NSMutableArray new];
-    for (YGSpeechText *text in texts) {
-        NSRange textRange = [text range];
-        if (textRange.location >= NSMaxRange(range)) {
-            break;
-        }
-        if (NSMaxRange(textRange) > range.location) {
-            [array addObject:text];
-        }
-    }
-    return array;
 }
 
 - (NSCharacterSet *)clauseEndCharacterSet {

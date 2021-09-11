@@ -1,17 +1,15 @@
 //
-//  YGSpeechTextItem.h
+//  YGSpeechTextPart.h
 //  YGSpeech
 //
 //  Created by Guang Yang on 2021/9/4.
 //
 
 #import "YGSpeechText.h"
-#import "YGSpeechTextSource.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface YGSpeechTextItem : YGSpeechText
-- (id<YGSpeechTextSource>)source;
+@interface YGSpeechTextPart : YGSpeechText
 - (NSArray<YGSpeechText *> *)clauses;
 - (NSArray<YGSpeechText *> *)sentences;
 - (NSArray<YGSpeechText *> *)paragraphs;

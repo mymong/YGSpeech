@@ -1,23 +1,23 @@
 //
-//  YGSpeechTextItem.m
+//  YGSpeechTextPart.m
 //  YGSpeech
 //
 //  Created by Guang Yang on 2021/9/4.
 //
 
-#import "YGSpeechTextItem.h"
+#import "YGSpeechTextPart.h"
 #import "YGSpeechTextSplitter.h"
 
-@implementation YGSpeechTextItem {
+@implementation YGSpeechTextPart {
     YGSpeechTextSplitter *_splitter;
-    id<YGSpeechTextSource> _source;
+    YGSpeechTextSource * _source;
     NSRange _range;
 #ifdef DEBUG
     NSString *_string;
 #endif
 }
 
-- (instancetype)initWithSplitter:(YGSpeechTextSplitter *)splitter source:(id<YGSpeechTextSource>)source range:(NSRange)range {
+- (instancetype)initWithSplitter:(YGSpeechTextSplitter *)splitter source:(YGSpeechTextSource *)source range:(NSRange)range {
     NSParameterAssert(splitter);
     NSParameterAssert(source);
     NSParameterAssert(NSNotFound != range.location);
@@ -32,7 +32,7 @@
     return self;
 }
 
-- (id<YGSpeechTextSource>)source {
+- (YGSpeechTextSource *)source {
     return _source;
 }
 

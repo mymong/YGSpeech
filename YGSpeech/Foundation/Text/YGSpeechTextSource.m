@@ -1,42 +1,41 @@
 //
-//  YGSpeechTextStringSource.m
+//  YGSpeechTextSource.m
 //  YGSpeech
 //
-//  Created by Guang Yang on 2021/9/4.
+//  Created by Guang Yang on 2021/9/8.
 //
 
-#import "YGSpeechTextStringSource.h"
+#import "YGSpeechTextSource.h"
 
-@implementation YGSpeechTextStringSource {
-    NSString *_string;
+@implementation YGSpeechTextSource {
+    id _string; // NSString or NSAttributedString
 }
 
 - (instancetype)initWithString:(NSString *)string {
     if (self = [super init]) {
-        _string = string ?: @"";
+        _string = [string isKindOfClass:NSString.class] ? string : @"";
     }
     return self;
 }
 
-#pragma mark YGSpeechText
-
-- (NSRange)range {
-    return NSMakeRange(0, _string.length);
+- (instancetype)initWithAttributedString:(NSAttributedString *)string {
+    if (self = [super init]) {
+        _string = [string isKindOfClass:NSAttributedString.class] ? string : @"";
+    }
+    return self;
 }
 
 - (NSUInteger)length {
-    return _string.length;
+    return [_string length];
 }
 
 - (NSString *)string {
-    return _string;
+    if ([_string isKindOfClass:NSAttributedString.class]) {
+        return [((NSAttributedString *)_string) string];
+    } else {
+        return _string;
+    }
 }
-
-- (NSString *)speechString {
-    return [self speechStringWithString:_string];
-}
-
-#pragma mark <YGSpeechTextSource>
 
 - (NSString *)stringWithRange:(NSRange)range {
     NSString *string = [self string];
